@@ -1,4 +1,4 @@
-gloss
+GLOSS
 =====
 
-some experimenting with code generation
+Some experiments with code generation

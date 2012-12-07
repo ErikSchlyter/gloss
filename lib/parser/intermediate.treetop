@@ -1,0 +1,70 @@
+grammar Intermediate
+
+  rule arbitrary
+    method_definition / expression
+  end
+
+  rule method_definition
+    identifier w? '()' w? '{' body:( w? statement w? ';'? )* w? '}' w?
+    {
+      def create()
+        Gloss::Method.new(identifier.text_value, [], body.elements.collect{|s| s.elements[1].create })
+      end
+    }
+  end
+
+  rule statement
+    invoke
+  end
+
+  rule invoke
+    identifier w? '(' params:( w? expression w? ','? )* w? ')'
+    {
+      def create()
+        Invoke.new(identifier.text_value, params.elements.collect{|s| s.elements[1].create })
+      end
+    }
+  end
+
+  rule expression
+    arithmetic / constant / inline_ref
+  end
+
+  rule arithmetic
+    '(' w? expression w? op w? expression w? ')'
+    {
+    def create() op.create(expression1.create,expression2.create) end
+    }
+  end
+
+  rule op
+    '+' { def create(a,b) Add.new(a,b) end }
+    /
+    '-' { def create(a,b) Sub.new(a,b) end }
+    /
+    '*' { def create(a,b) Mul.new(a,b) end }
+    /
+    '/' { def create(a,b) Div.new(a,b) end }
+  end
+
+  rule constant
+    ([1-9] [0-9]* / '0') { def create() Constant.new(text_value) end }
+  end
+
+  rule inline_ref
+    '$' identifier
+    {
+      def create
+        eval "$#{identifier.text_value}"
+      end
+    }
+  end
+
+  rule identifier
+    [a-zA-Z] [a-zA-Z0-9]*
+  end
+
+  rule w
+    ' '*
+  end
+end
