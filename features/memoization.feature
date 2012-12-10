@@ -12,16 +12,16 @@ Feature: Memoization
 	Scenario: When an expression is used twice
 		Given an expression '(2+3)' identified as 'a'
 		When generating the method foo(){ bar($a, $a) }
-		Then it should equal 'foo(){ S[(2+3)]; bar(L[(2+3)], L[(2+3)]) }'
+		Then it should equal 'foo(){ S[0]((2+3)); bar(L[0], L[0]) }'
 
 	Scenario: When two expressions are used twice
 		Given an expression '(2+3)' identified as 'a'
 		And an expression '(5-7)' identified as 'b'
 		When generating the method foo(){ bar( (($a+$b) * ($b+$a)) ) }
-        Then it should equal 'foo(){ S[(2+3)]; S[(5-7)]; bar(((L[(2+3)]+L[(5-7)])*(L[(5-7)]+L[(2+3)]))) }'
+        Then it should equal 'foo(){ S[0]((2+3)); S[1]((5-7)); bar(((L[0]+L[1])*(L[1]+L[0]))) }'
 
 	Scenario: When an expression is used twice in another expression that is used twice
 		Given an expression '(2+3)' identified as 'a'
 		And an expression '($a*$a)' identified as 'b'
 		When generating the method foo(){ bar($b, $b); }
-        Then it should equal 'foo(){ S[(2+3)]; S[(L[(2+3)]*L[(2+3)])]; bar(L[(L[(2+3)]*L[(2+3)])], L[(L[(2+3)]*L[(2+3)])]) }'
+        Then it should equal 'foo(){ S[0]((2+3)); S[1]((L[0]*L[0])); bar(L[1], L[1]) }'

@@ -47,13 +47,13 @@ module Gloss
     end
 
     def wrapped_in_load_statement(wrapped=[])
-      return Load.new(self) if wrapped.include? self
+      return Load.new(wrapped.index(self)) if wrapped.include? self
 
       cache_parameters!(wrapped)
 
       if should_be_cached? then
         wrapped << self
-        return Load.new(self)
+        return Load.new(wrapped.index(self))
       else
         return self
       end
@@ -118,21 +118,27 @@ module Gloss
   end
 
   class Load < Expression
-    def initialize(expression)
-      @parameters = [expression]
+    attr_reader :variable_index
+
+    def initialize(variable_index)
+      @variable_index = variable_index
     end
 
     def to_s
-      "L[#{parameters_to_s}]"
+      "L[#{@variable_index}]"
     end
   end
 
   class Store < Statement
-    def initialize(expression)
+    attr_reader :variable_index
+
+    def initialize(expression, variable_index)
       @parameters = [expression]
+      @variable_index = variable_index
     end
+
     def to_s
-      "S[#{parameters_to_s}]"
+      "S[#{@variable_index}](#{parameters_to_s})"
     end
   end
 
@@ -161,18 +167,18 @@ module Gloss
 
     def compile
       output = []
-      stored_expressions = Set.new
+      stored_expressions = []
 
       @invocations.each{|invoke|
         cached_expressions = invoke.cache_parameters!
 
         cached_expressions.each{|expr|
           unless stored_expressions.include?(expr) then
-            output << Store.new(expr)
+            stored_expressions << expr
+            output << Store.new(expr, stored_expressions.index(expr))
           end
         }
         output << invoke
-        stored_expressions.merge(cached_expressions)
       }
       output
     end

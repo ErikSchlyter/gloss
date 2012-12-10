@@ -16,13 +16,29 @@ module Gloss
       end
 
       context 'given the expression is cachable' do
-
-        it 'should return a Load statement containing the original expression' do
+        it 'should return a Load statement' do
           Mul.new(@input, @input) # make sure input is used >= 2 times
           wrapped = @input.wrapped_in_load_statement
 
           wrapped.should be_a Load
-          wrapped.parameters[0].should == @input
+        end
+
+        it 'should add the expression to the list given as parameter' do
+          Mul.new(@input, @input) # make sure input is used >= 2 times
+
+          list_of_wrapped_expressions = []
+          wrapped = @input.wrapped_in_load_statement(list_of_wrapped_expressions)
+
+          list_of_wrapped_expressions[0].should == @input
+        end
+
+        it 'should base variable_index on the index in the list given as parameter' do
+          Mul.new(@input, @input) # make sure input is used >= 2 times
+
+          list_of_wrapped_expressions = []
+          wrapped = @input.wrapped_in_load_statement(list_of_wrapped_expressions)
+
+          list_of_wrapped_expressions.index(@input).should == wrapped.variable_index
         end
       end
 
@@ -40,13 +56,13 @@ module Gloss
 
       it 'should wrap all cachable parameters within load-statements' do
         @input.cache_parameters!
-        @input.to_s.should == '(L[(L[(2+3)]*L[(2+3)])]+L[(L[(2+3)]*L[(2+3)])])'
+        @input.to_s.should == '(L[1]+L[1])'
       end
 
       it 'should return a list of the expressions that were wrapped' do
         wrapped = @input.cache_parameters!
         wrapped[0].to_s.should == '(2+3)'
-        wrapped[1].to_s.should == '(L[(2+3)]*L[(2+3)])'
+        wrapped[1].to_s.should == '(L[0]*L[0])'
       end
     end
   end
