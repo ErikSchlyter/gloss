@@ -61,7 +61,7 @@ module Gloss
     end
 
     def <=>(anOther)
-      diff = type <=> anOther.type
+      diff = Expression.compare_type_order(type, anOther.type)
       return diff unless diff == 0
       diff = @parameters.size <=> anOther.parameters.size
       return diff unless diff == 0
@@ -71,6 +71,15 @@ module Gloss
       }
       0
     end
+
+    def self.compare_type_order(type_1, type_2)
+      order = ['load', 'mul', 'div', 'add', 'sub', 'constant']
+      order.index(type_1) <=> order.index(type_2)
+    end
+
+    def reduce
+      @parameters.map! {|p| p.reduce}
+    end
   end
 
   class Constant < Expression
@@ -78,7 +87,7 @@ module Gloss
 
     def initialize(value)
       super([])
-      @value = value;
+      @value = value.to_i;
     end
 
     def should_be_cached?
@@ -90,9 +99,13 @@ module Gloss
     end
 
     def <=>(anOther)
-      diff = type <=> anOther.type
+      diff = Expression.compare_type_order(type, anOther.type)
       return diff unless diff == 0
       value <=> anOther.value
+    end
+
+    def reduce
+      self
     end
   end
 
@@ -105,12 +118,33 @@ module Gloss
   end
 
   class ArithmeticExpression < Expression
-    def initialize(left, right)
-      super([left, right])
+    def initialize(left_expr, right_expr)
+      super([left_expr, right_expr])
+    end
+
+    def left
+      @parameters[0]
+    end
+
+    def right
+      @parameters[1]
+    end
+
+    def both_parameters_are_constants?
+      left.is_a? Constant and right.is_a? Constant
     end
 
     def to_s
       '(' << parameters_to_s << ')'
+    end
+    def reduce
+      super
+      @parameters.sort! if commutative?
+      self
+    end
+
+    def commutative?
+      false
     end
   end
 
@@ -118,11 +152,49 @@ module Gloss
     def parameter_sep
       '+'
     end
+
+    def commutative?
+      true
+    end
+
+    def reduce
+      super
+      if right.is_a? Constant and right.value == 0 then
+        return left
+      elsif right.is_a? Constant and right.value < 0 then
+        return Sub.new(left, Constant.new(0 - right.value))
+      elsif both_parameters_are_constants? then
+        return Constant.new(left.value + right.value)
+      elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
+        return Add.new(left.left, Constant.new(left.right.value + right.value)).reduce
+      elsif left.is_a? Sub and left.right.is_a? Constant and right.is_a? Constant then
+        return Sub.new(left.left, Constant.new(left.right.value - right.value)).reduce
+      end
+      self
+    end
   end
 
   class Sub < ArithmeticExpression
     def parameter_sep
       '-'
+    end
+
+    def reduce
+      super
+      if (right.is_a? Constant and right.value == 0) then
+        return left
+      elsif right.is_a? Constant and right.value < 0 then
+        return Add.new(left, Constant.new(0 - right.value))
+      elsif (left.is_a? Constant and left.value == 0) then
+        return right
+      elsif both_parameters_are_constants? then
+        return Constant.new(left.value - right.value)
+      elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
+        return Add.new(left.left, Constant.new(left.right.value - right.value)).reduce
+      elsif left.is_a? Sub and left.right.is_a? Constant and right.is_a? Constant then
+        return Sub.new(left.left, Constant.new(left.right.value + right.value)).reduce
+      end
+      self
     end
   end
 
@@ -130,11 +202,48 @@ module Gloss
     def parameter_sep
       '*'
     end
+
+    def commutative?
+      true
+    end
+
+    def reduce
+      super
+      if right.is_a? Constant and right.value == 0 then
+        return right
+      elsif right.is_a? Constant and right.value == 1 then
+        return left
+      elsif both_parameters_are_constants? then
+        return Constant.new(left.value * right.value)
+      elsif right.is_a? Div then
+        return Div.new(Mul.new(left, right.left), right.right).reduce
+      end
+      self
+    end
   end
 
   class Div < ArithmeticExpression
     def parameter_sep
       '/'
+    end
+
+    def reduce
+      super
+      if right.is_a? Constant and right.value == 1 then
+        return left
+      elsif both_parameters_are_constants? then
+        left_value = left.value
+        gcd = left.value.gcd(right.value)
+        if gcd > 1
+          return Div.new(Constant.new(left.value / gcd),
+                         Constant.new(right.value / gcd)).reduce
+        end
+      elsif left.is_a? Div then
+        return Div.new(left.left, Mul.new(left.right, right)).reduce
+      elsif right.is_a? Div then
+        return Div.new(Mul.new(left, right.right), right.left).reduce
+      end
+      self
     end
   end
 
@@ -143,6 +252,7 @@ module Gloss
 
     def initialize(variable_index)
       @variable_index = variable_index
+      @used_by = []
     end
 
     def to_s
@@ -150,9 +260,13 @@ module Gloss
     end
 
     def <=>(anOther)
-      diff = type <=> anOther.type
+      diff = Expression.compare_type_order(type, anOther.type)
       return diff unless diff == 0
       variable_index <=> anOther.variable_index
+    end
+
+    def reduce
+      self
     end
   end
 

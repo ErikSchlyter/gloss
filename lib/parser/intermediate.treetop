@@ -27,7 +27,7 @@ grammar Intermediate
   end
 
   rule expression
-    arithmetic / constant / inline_ref
+    arithmetic / constant / inline_ref / variable
   end
 
   rule arithmetic
@@ -56,6 +56,15 @@ grammar Intermediate
     {
       def create
         eval "$#{identifier.text_value}"
+      end
+    }
+  end
+
+  rule variable
+    identifier
+    {
+      def create
+        Load.new(text_value)
       end
     }
   end
