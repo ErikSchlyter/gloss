@@ -36,6 +36,7 @@ module Gloss
   end
 
   class Expression < Statement
+    include Comparable
 
     def initialize(parameters=[])
       super(parameters)
@@ -58,9 +59,23 @@ module Gloss
         return self
       end
     end
+
+    def <=>(anOther)
+      diff = type <=> anOther.type
+      return diff unless diff == 0
+      diff = @parameters.size <=> anOther.parameters.size
+      return diff unless diff == 0
+      @parameters.each_with_index{|param, index|
+        diff = param <=> anOther.parameters[index]
+        return diff unless diff == 0
+      }
+      0
+    end
   end
 
   class Constant < Expression
+    attr_reader :value
+
     def initialize(value)
       super([])
       @value = value;
@@ -72,6 +87,12 @@ module Gloss
 
     def to_s
       @value.to_s
+    end
+
+    def <=>(anOther)
+      diff = type <=> anOther.type
+      return diff unless diff == 0
+      value <=> anOther.value
     end
   end
 
@@ -126,6 +147,12 @@ module Gloss
 
     def to_s
       "L[#{@variable_index}]"
+    end
+
+    def <=>(anOther)
+      diff = type <=> anOther.type
+      return diff unless diff == 0
+      variable_index <=> anOther.variable_index
     end
   end
 
