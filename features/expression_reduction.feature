@@ -57,6 +57,6 @@ Examples:
       | '(a*(b/c))'    | '((a*b)/c)'     | 'avoid loss in precision' |
       | '((a/b)/c)'    | '(a/(b*c))'     | 'avoid loss in precision' |
       | '(a/(b/c))'    | '((a*c)/b)'     | 'avoid loss in precision' |
-      | '(9/(3/7))'    | '21' | 'avoid loss in precision' |
+      | '(9/(3/7))'    | '21'            | 'avoid loss in precision' |
       | '((a/b)*(c/d))'| '((a*c)/(b*d))' | 'avoid loss in precision' |
 
