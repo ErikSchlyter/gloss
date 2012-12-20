@@ -2,20 +2,49 @@ module Gloss
 
   class Statement
     attr_accessor :parameters
-    attr_accessor :used_by
 
     def initialize(parameters=[])
       @parameters = parameters
-      @used_by = []
     end
 
-    def should_be_cached?
+    def can_be_cached?
       false
     end
 
-    def cache_parameters!(wrapped=[])
-      @parameters.map! {|param| param.wrapped_in_load_statement(wrapped) }
-      wrapped
+    def count_cachable_expressions(ref_count={})
+      if ref_count.include?(self) then
+        ref_count[self] += 1
+      else
+        ref_count[self] = 1 if can_be_cached?
+        @parameters.each{|param| param.count_cachable_expressions(ref_count) }
+      end
+      ref_count
+    end
+
+    def wrap_recurring_expressions_in_load(ref_count, var_map, wrapped, free_variable_indices)
+      if ref_count[self].nil? then
+        @parameters.map! {|param| param. wrap_recurring_expressions_in_load(ref_count, var_map, wrapped, free_variable_indices) }
+        return self
+      end
+
+      if var_map.include?(self) then # the expression is already mapped to a variable index
+        ref_count[self] -= 1
+        if ref_count[self] == 0 then # it is the last time expressions is used
+          # reuse the variable and flush from var_map
+          free_variable_indices << var_map[self]
+          Load.new(var_map.delete(self))
+        end
+      else # it is the first time the expression is used
+        # wrap child nodes as well
+        @parameters.map! {|param| param. wrap_recurring_expressions_in_load(ref_count, var_map, wrapped, free_variable_indices) }
+
+        # allocate index of free variable
+        var = free_variable_indices.pop
+        var = var_map.size if var.nil?
+        var_map[self] = var
+        wrapped << self
+      end
+      Load.new(var_map[self])
     end
 
     def to_s
@@ -40,24 +69,10 @@ module Gloss
 
     def initialize(parameters=[])
       super(parameters)
-      @parameters.each{|p| p.used_by << self }
     end
 
-    def should_be_cached?
-      used_by.size > 1
-    end
-
-    def wrapped_in_load_statement(wrapped=[])
-      return Load.new(wrapped.index(self)) if wrapped.include? self
-
-      cache_parameters!(wrapped)
-
-      if should_be_cached? then
-        wrapped << self
-        return Load.new(wrapped.index(self))
-      else
-        return self
-      end
+    def can_be_cached?
+      true
     end
 
     def <=>(anOther)
@@ -90,7 +105,7 @@ module Gloss
       @value = value.to_i;
     end
 
-    def should_be_cached?
+    def can_be_cached?
       false
     end
 
@@ -252,7 +267,10 @@ module Gloss
 
     def initialize(variable_index)
       @variable_index = variable_index
-      @used_by = []
+    end
+
+    def can_be_cached?
+      false
     end
 
     def to_s
@@ -288,8 +306,6 @@ module Gloss
     def initialize(name, parameters)
       super(parameters)
       @name = name
-      @used_by = []
-      @parameters.each{|p| p.used_by << self }
     end
 
     def to_s
@@ -308,16 +324,22 @@ module Gloss
 
     def compile
       output = []
-      stored_expressions = []
+
+      ref_count = {}
+      var_map = {}
+      free_variable_indices = []
+
+      # find the expressions that should be cached
+      @invocations.each{|invoke| invoke.count_cachable_expressions(ref_count) }
+      ref_count.delete_if{|expr, count| count <= 1 } # sort out every expression only used once
+
 
       @invocations.each{|invoke|
-        cached_expressions = invoke.cache_parameters!
+        wrapped = []
+        invoke.wrap_recurring_expressions_in_load(ref_count, var_map, wrapped, free_variable_indices)
 
-        cached_expressions.each{|expr|
-          unless stored_expressions.include?(expr) then
-            stored_expressions << expr
-            output << Store.new(expr, stored_expressions.index(expr))
-          end
+        wrapped.each{|expr|
+          output << Store.new(expr, var_map[expr])
         }
         output << invoke
       }
