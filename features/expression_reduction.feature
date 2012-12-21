@@ -4,9 +4,9 @@ Feature: Normalization
   I want to each expression to be expressed as short as possible
 
   Scenario: Comparing different expression types
-    Given the following list of expressions: add, constant, div, load, mul, sub
+    Given the following list of expressions: add, constant, div, load, max, min, mul, sub
     When sorting them according to parameter order
-    Then the order should be: load, mul, div, add, sub, constant
+    Then the order should be: max, min, load, mul, div, add, sub, constant
 
   Scenario Outline: Reducing expressions
     Given the <expression> to reduce

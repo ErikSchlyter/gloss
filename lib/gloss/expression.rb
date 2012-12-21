@@ -88,12 +88,14 @@ module Gloss
     end
 
     def self.compare_type_order(type_1, type_2)
-      order = ['load', 'mul', 'div', 'add', 'sub', 'constant']
+      order = ['max', 'min', 'load', 'mul', 'div', 'add', 'sub', 'constant']
       order.index(type_1) <=> order.index(type_2)
     end
 
     def reduce
       @parameters.map! {|p| p.reduce}
+      @parameters.sort! if commutative?
+      self
     end
   end
 
@@ -124,12 +126,36 @@ module Gloss
     end
   end
 
-  class Max < Expression
 
+  class ConstraintFunction < Expression
+
+    def initialize(*params)
+      super(params)
+    end
+
+    def commutative?
+      true
+    end
+
+    def reduce
+      super
+      prominent = most_prominent_constant(@parameters.select{|p| p.is_a? Constant})
+      @parameters.delete_if{|p| p.is_a? Constant and !p.equal?(prominent) }
+      return @parameters[0] if @parameters.size == 1
+      self
+    end
   end
 
-  class Min < Expression
+  class Max < ConstraintFunction
+    def most_prominent_constant(constants)
+      constants.max
+    end
+  end
 
+  class Min < ConstraintFunction
+    def most_prominent_constant(constants)
+      constants.min
+    end
   end
 
   class ArithmeticExpression < Expression
@@ -151,11 +177,6 @@ module Gloss
 
     def to_s
       '(' << parameters_to_s << ')'
-    end
-    def reduce
-      super
-      @parameters.sort! if commutative?
-      self
     end
 
     def commutative?
