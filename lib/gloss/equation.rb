@@ -25,13 +25,10 @@ module Gloss
 
       (@equations.size-1).downto(0) {|src_index|
         (src_index-1).downto(0){|target_index|
-          id = most_significant_term(identifier_order, @equations[src_index])
-          @equations[target_index].reduce_term!(id, @equations[src_index])
+          most_significant_id = @equations[src_index].most_significant_term(identifier_order)
+          @equations[target_index].reduce_term!(most_significant_id, @equations[src_index])
         }
       }
-    end
-    def most_significant_term(identifier_order, equation)
-      identifier_order.each{|id| return id if equation.terms[id] != nil and equation.terms[id] != 0 }
     end
 
     def reduce_to_row_echelon!(eq_index=0, id_index=0, identifier_order=@identifiers.values)
@@ -111,6 +108,11 @@ module Gloss
         @terms.delete(id) if @terms[id] == 0
       }
     end
+
+    def most_significant_term(identifier_order)
+      identifier_order.each{|id| return id if @terms[id] != nil and @terms[id] != 0 }
+    end
+
 
     def <=>(anOther)
       terms.keys <=> anOther.terms.keys
