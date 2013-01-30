@@ -5,7 +5,7 @@ module Gloss
 
     attr_reader :identifiers, :equations
     def initialize
-      @identifiers = {}
+      @identifiers = SortedSet.new
       @equations = []
     end
 
@@ -13,14 +13,14 @@ module Gloss
       eq = LinearEquation.new
       @equations << eq
 
-      hash_with_factors.each{|label, factor|
-        @identifiers[label] = Identifier.new(label) unless @identifiers.include?(label)
-        eq.add_term!(Rational(factor.to_s), @identifiers[label])
+      hash_with_factors.each{|id, factor|
+        @identifiers.add(id)
+        eq.add_term!(Rational(factor.to_s), id)
       }
       eq
     end
 
-    def reduce_to_canonical!(identifier_order=@identifiers.values)
+    def reduce_to_canonical!(identifier_order=@identifiers.to_a)
       reduce_to_row_echelon!(0,0,identifier_order)
 
       (@equations.size-1).downto(0) {|src_index|
@@ -31,7 +31,7 @@ module Gloss
       }
     end
 
-    def reduce_to_row_echelon!(eq_index=0, id_index=0, identifier_order=@identifiers.values)
+    def reduce_to_row_echelon!(eq_index=0, id_index=0, identifier_order=@identifiers.to_a)
       pivot_eq_index = determine_index_of_pivot_equation(eq_index, identifier_order[id_index])
       swap_equations!(eq_index, pivot_eq_index)
 
@@ -126,26 +126,6 @@ module Gloss
       hash = Hash.new
       @terms.collect{|id,factor| hash[id.to_s] = factor }
       hash
-    end
-  end
-
-  class Identifier
-    include Comparable
-
-    attr_reader :label
-
-    def initialize(label)
-      fail unless label.is_a? String
-
-      @label = label
-    end
-
-    def <=>(anOther)
-      @label <=> anOther.label
-    end
-
-    def to_s
-      @label.to_s
     end
   end
 end
