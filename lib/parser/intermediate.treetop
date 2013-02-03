@@ -60,15 +60,6 @@ grammar Intermediate
     }
   end
 
-  rule variable
-    identifier
-    {
-      def create
-        Load.new(text_value)
-      end
-    }
-  end
-
   rule constraint_function
     constraint_op w? '(' w? first:expression list:(w? ',' w? element:expression)* w? ')'
     {
@@ -82,6 +73,15 @@ grammar Intermediate
     '>' { def create(e) Max.new(e) end }
     /
     '<' { def create(e) Min.new(e) end }
+  end
+
+  rule variable
+    identifier
+    {
+      def create
+        Load.new(text_value)
+      end
+    }
   end
 
   rule identifier
