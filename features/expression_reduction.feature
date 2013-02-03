@@ -18,6 +18,7 @@ Examples:
       | '((1+2)+3)'    | '6'             | 'reducing +' |
       | '(2-1)'        | '1'             | 'reducing -' |
       | '((3-2)-1)'    | '0'             | 'reducing -' |
+      | '(3-5)'        | '-2'            | 'reducing -' |
 
       | '(2*1)'        | '2'             | 'reducing *' |
       | '((4*3)*2)'    | '24'            | 'reducing *' |
@@ -29,6 +30,12 @@ Examples:
       | '>(3)'         | '3'             | 'reducing max' |
       | '>(3,4)'       | '4'             | 'reducing max' |
       | '>(>(3,4),1)'  | '4'             | 'reducing max' |
+
+      | '-3'           | '-3'            | 'reducing negation' |
+      | '-(3-5)'       | '2'             | 'reducing negation' |
+      | '-a'           | '(0-a)'         | 'reducing negation' |
+      | '---a'         | '(0-a)'         | 'reducing negation' |
+      | '----a'        | 'a'             | 'reducing negation' |
 
       | '(1+x)'        | '(x+1)'         | 'sorting' |
       | '(x+1)'        | '(x+1)'         | 'sorting' |
@@ -47,7 +54,7 @@ Examples:
       | '(0+x)'        | 'x'             | 'reducing' |
 
       | '(x-0)'        | 'x'             | 'reducing' |
-      | '(0-x)'        | 'x'             | 'reducing' |
+      | '(0-x)'        | '-x'            | 'reducing' |
 
       | '(x*0)'        | '0'             | 'reducing' |
       | '(0*x)'        | '0'             | 'reducing' |

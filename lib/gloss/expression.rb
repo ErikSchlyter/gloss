@@ -206,7 +206,7 @@ module Gloss
       if right.is_a? Constant and right.value == 0 then
         return left
       elsif right.is_a? Constant and right.value < 0 then
-        return Sub.new(left, Constant.new(0 - right.value))
+        return Sub.new(left, Constant.new(0 - right.value)).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value + right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
@@ -228,15 +228,15 @@ module Gloss
       if (right.is_a? Constant and right.value == 0) then
         return left
       elsif right.is_a? Constant and right.value < 0 then
-        return Add.new(left, Constant.new(0 - right.value))
-      elsif (left.is_a? Constant and left.value == 0) then
-        return right
+        return Add.new(left, Constant.new(0 - right.value)).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value - right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
         return Add.new(left.left, Constant.new(left.right.value - right.value)).reduce
       elsif left.is_a? Sub and left.right.is_a? Constant and right.is_a? Constant then
         return Sub.new(left.left, Constant.new(left.right.value + right.value)).reduce
+      elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
+        return Add.new(left, right.right).reduce
       end
       self
     end
