@@ -27,7 +27,7 @@ grammar Intermediate
   end
 
   rule expression
-    arithmetic / constant / inline_ref / variable
+    arithmetic / constant / inline_ref / constraint_function / variable
   end
 
   rule arithmetic
@@ -67,6 +67,21 @@ grammar Intermediate
         Load.new(text_value)
       end
     }
+  end
+
+  rule constraint_function
+    constraint_op w? '(' w? first:expression list:(w? ',' w? element:expression)* w? ')'
+    {
+      def create
+        constraint_op.create([first.create] + list.elements.map{|e| e.element.create})
+      end
+    }
+  end
+
+  rule constraint_op
+    '>' { def create(e) Max.new(e) end }
+    /
+    '<' { def create(e) Min.new(e) end }
   end
 
   rule identifier

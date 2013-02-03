@@ -126,10 +126,9 @@ module Gloss
     end
   end
 
-
   class ConstraintFunction < Expression
 
-    def initialize(*params)
+    def initialize(params)
       super(params)
     end
 
@@ -139,10 +138,19 @@ module Gloss
 
     def reduce
       super
+      merge_similar_constraints
       prominent = most_prominent_constant(@parameters.select{|p| p.is_a? Constant})
       @parameters.delete_if{|p| p.is_a? Constant and !p.equal?(prominent) }
       return @parameters[0] if @parameters.size == 1
       self
+    end
+
+    def merge_similar_constraints
+      similar_constraints = @parameters.select{|e| e.class.name == self.class.name}
+      similar_constraints.each{|expression|
+        @parameters.delete(expression)
+        @parameters.concat(expression.parameters)
+      }
     end
   end
 

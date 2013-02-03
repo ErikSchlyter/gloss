@@ -22,6 +22,14 @@ Examples:
       | '(2*1)'        | '2'             | 'reducing *' |
       | '((4*3)*2)'    | '24'            | 'reducing *' |
 
+      | '<(3)'         | '3'             | 'reducing min' |
+      | '<(3,4,5)'     | '3'             | 'reducing min' |
+      | '<(<(3,4),1)'  | '1'             | 'reducing min' |
+
+      | '>(3)'         | '3'             | 'reducing max' |
+      | '>(3,4)'       | '4'             | 'reducing max' |
+      | '>(>(3,4),1)'  | '4'             | 'reducing max' |
+
       | '(1+x)'        | '(x+1)'         | 'sorting' |
       | '(x+1)'        | '(x+1)'         | 'sorting' |
       | '(1+(a+b))'    | '((a+b)+1)'     | 'sorting' |
@@ -31,6 +39,9 @@ Examples:
       | '(a*b)'        | '(a*b)'         | 'sorting' |
       | '(b*a)'        | '(a*b)'         | 'sorting' |
       | '(2*(b*a))'    | '((a*b)*2)'     | 'sorting' |
+
+      | '<(b,a)'       | '<(a,b)'        | 'sorting' |
+      | '<(<(c,3,b),a)'| '<(a,b,c,3)'    | 'sorting' |
 
       | '(x+0)'        | 'x'             | 'reducing' |
       | '(0+x)'        | 'x'             | 'reducing' |
