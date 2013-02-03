@@ -1,0 +1,116 @@
+grammar Gloss
+
+  rule equality
+    terms w? '=' w? terms
+    {
+      def create
+        map = {}
+        terms1.create(map,1)
+        terms2.create(map,-1)
+        map
+      end
+    }
+  end
+
+  rule terms
+    parentheses_terms / term_list
+  end
+
+  rule parentheses_terms
+    '(' terms ')'
+    {
+      def create(map, sign)
+        terms.create(map, sign)
+      end
+    }
+  end
+
+  rule term_list
+    first:term w? list:(sign w? element:term)*
+    {
+      def create(map, sign)
+        first.add_to_equation(map, sign)
+        list.elements.each{|e| e.element.add_to_equation(map, e.sign.multiply(sign))}
+      end
+    }
+  end
+
+  rule sign
+    [+-]
+    {
+      def multiply(sign)
+        sign * (text_value == '+' ? 1 : -1)
+      end
+    }
+  end
+
+  rule term
+    parentheses_term / identifier_term / constant_factor
+  end
+
+  rule parentheses_term
+    '(' term ')'
+    {
+      def add_to_equation(map, sign)
+        term.add_to_equation(map, sign)
+      end
+    }
+  end
+
+  rule constant_factor
+    factor
+    {
+      def add_to_equation(map, sign)
+        f = create * sign
+        map['1'] = map['1'] ? map['1'] + f : f
+      end
+    }
+  end
+
+  rule identifier_term
+    w? left:(factor w? '*' w?)? identifier right:(w? '*' w? factor)?
+    {
+      def add_to_equation(map, sign)
+        left_f = left.elements ? left.factor.create : 1
+        right_f = right.elements ? right.factor.create : 1
+        f = left_f * right_f * sign
+
+        variable = identifier.text_value
+        map[variable] = map[variable] ? map[variable] + f : f
+      end
+    }
+  end
+
+  rule factor
+    constant / factor_arithmetic
+  end
+
+  rule factor_arithmetic
+    '(' w? factor w? op w? factor w? ')'
+    {
+    def create() op.create(factor1.create,factor2.create) end
+    }
+  end
+
+  rule op
+    '+' { def create(a,b) a+b end }
+    /
+    '-' { def create(a,b) a-b end }
+    /
+    '*' { def create(a,b) a*b end }
+    /
+    '/' { def create(a,b) a/b end }
+  end
+
+  rule constant
+    (('-'? [1-9] [0-9]*) / '0') { def create() Rational(text_value) end }
+  end
+
+  rule identifier
+    [a-zA-Z] [a-zA-Z0-9]*
+  end
+
+  rule w
+    ' '*
+  end
+end
