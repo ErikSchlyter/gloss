@@ -257,8 +257,12 @@ module Gloss
         return right
       elsif right.is_a? Constant and right.value == 1 then
         return left
+      elsif right.is_a? Constant and right.value == -1 then
+        return Sub.new(Constant.new(0), left).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value * right.value)
+      elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
+        return Sub.new(Constant.new(0), Mul.new(left, right.right))
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.left), right.right).reduce
       end
@@ -275,6 +279,8 @@ module Gloss
       super
       if right.is_a? Constant and right.value == 1 then
         return left
+      elsif right.is_a? Constant and right.value == -1 then
+        return Sub.new(Constant.new(0), left).reduce
       elsif both_parameters_are_constants? then
         left_value = left.value
         gcd = left.value.gcd(right.value)
@@ -286,6 +292,8 @@ module Gloss
         return Div.new(left.left, Mul.new(left.right, right)).reduce
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.right), right.left).reduce
+      elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
+        return Sub.new(Constant.new(0), Div.new(left, right.right))
       end
       self
     end
