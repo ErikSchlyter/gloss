@@ -64,6 +64,16 @@ module Gloss
     end
   end
 
+  def Expression(num)
+    if num.is_a? Rational
+      return Div.new(Constant.new(num.numerator), Constant.new(num.denominator))
+    elsif num.is_a? Numeric
+      return Constant.new(num)
+    else
+      fail "Can not create expression from class type " << num.class.name << "."
+    end
+  end
+
   class Expression < Statement
     include Comparable
 
@@ -145,7 +155,7 @@ module Gloss
       if expression.is_a? Negation
         return expression.expression
       elsif expression.is_a? Constant
-        return Constant.new(-expression.value)
+        return Expression(-expression.value)
       end
       self
     end
@@ -239,13 +249,13 @@ module Gloss
       if right.value == 0 then
         return left
       elsif right.is_a? Constant and right.value < 0 then
-        return Sub.new(left, Constant.new(0 - right.value)).reduce
+        return Sub.new(left, Expression(-right.value)).reduce
       elsif both_parameters_are_constants? then
-        return Constant.new(left.value + right.value)
+        return Expression(left.value + right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
-        return Add.new(left.left, Constant.new(left.right.value + right.value)).reduce
+        return Add.new(left.left, Expression(left.right.value + right.value)).reduce
       elsif left.is_a? Sub and left.right.is_a? Constant and right.is_a? Constant then
-        return Sub.new(left.left, Constant.new(left.right.value - right.value)).reduce
+        return Sub.new(left.left, Expression(left.right.value - right.value)).reduce
       end
       self
     end
@@ -261,15 +271,15 @@ module Gloss
       if (right.is_a? Constant and right.value == 0) then
         return left
       elsif right.is_a? Constant and right.value < 0 then
-        return Add.new(left, Constant.new(0 - right.value)).reduce
+        return Add.new(left, Expression(-right.value)).reduce
       elsif left.is_a? Constant and left.value == 0 then
         return Negation.new(right).reduce
       elsif both_parameters_are_constants? then
-        return Constant.new(left.value - right.value)
+        return Expression(left.value - right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
-        return Add.new(left.left, Constant.new(left.right.value - right.value)).reduce
+        return Add.new(left.left, Expression(left.right.value - right.value)).reduce
       elsif left.is_a? Sub and left.right.is_a? Constant and right.is_a? Constant then
-        return Sub.new(left.left, Constant.new(left.right.value + right.value)).reduce
+        return Sub.new(left.left, Expression(left.right.value + right.value)).reduce
       elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
         return Add.new(left, right.right).reduce
       end
@@ -295,7 +305,7 @@ module Gloss
       elsif right.value == -1 then
         return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
-        return Constant.new(left.value * right.value)
+        return Expression(left.value * right.value)
       elsif left.is_a? Negation then
         return Negation.new(Mul.new(left.expression, right)).reduce
       elsif right.is_a? Sub and right.left.value == 0 then
@@ -322,8 +332,8 @@ module Gloss
         left_value = left.value
         gcd = left.value.gcd(right.value)
         if gcd > 1
-          return Div.new(Constant.new(left.value / gcd),
-                         Constant.new(right.value / gcd)).reduce
+          return Div.new(Expression(left.value / gcd),
+                         Expression(right.value / gcd)).reduce
         end
       elsif left.is_a? Negation then
         return Negation.new(Div.new(left.expression, right)).reduce
