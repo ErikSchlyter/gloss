@@ -268,12 +268,12 @@ module Gloss
 
     def reduce
       super
-      if (right.is_a? Constant and right.value == 0) then
+      if right.value == 0 then
         return left
+      elsif left.value == 0 then
+        return Negation.new(right).reduce
       elsif right.is_a? Constant and right.value < 0 then
         return Add.new(left, Expression(-right.value)).reduce
-      elsif left.is_a? Constant and left.value == 0 then
-        return Negation.new(right).reduce
       elsif both_parameters_are_constants? then
         return Expression(left.value - right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
