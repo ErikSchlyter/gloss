@@ -88,7 +88,7 @@ module Gloss
     end
 
     def self.compare_type_order(type_1, type_2)
-      order = ['max', 'min', 'load', 'mul', 'div', 'add', 'sub', 'constant']
+      order = ['negation', 'max', 'min', 'load', 'mul', 'div', 'add', 'sub', 'constant']
       order.index(type_1) <=> order.index(type_2)
     end
 
@@ -123,6 +123,35 @@ module Gloss
 
     def reduce
       self
+    end
+  end
+
+  class Negation < Expression
+
+    def initialize(expression)
+      super([expression])
+    end
+
+    def expression
+      @parameters[0]
+    end
+
+    def reduce
+      super
+      if expression.is_a? Negation
+        return expression.expression
+      elsif expression.is_a? Constant
+        return Constant.new(-expression.value)
+      end
+      self
+    end
+
+    def commutative?
+      false
+    end
+
+    def to_s
+      '-' << parameters_to_s
     end
   end
 
@@ -229,6 +258,8 @@ module Gloss
         return left
       elsif right.is_a? Constant and right.value < 0 then
         return Add.new(left, Constant.new(0 - right.value)).reduce
+      elsif left.is_a? Constant and left.value == 0 then
+        return Negation.new(right).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value - right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
@@ -258,11 +289,15 @@ module Gloss
       elsif right.is_a? Constant and right.value == 1 then
         return left
       elsif right.is_a? Constant and right.value == -1 then
-        return Sub.new(Constant.new(0), left).reduce
+        return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value * right.value)
+      elsif left.is_a? Negation then
+        return Negation.new(Mul.new(left.expression, right)).reduce
+      elsif right.is_a? Negation then
+        return Negation.new(Mul.new(left, right.expression)).reduce
       elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
-        return Sub.new(Constant.new(0), Mul.new(left, right.right))
+        return Negation.new(Mul.new(left, right.right))
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.left), right.right).reduce
       end
@@ -280,7 +315,7 @@ module Gloss
       if right.is_a? Constant and right.value == 1 then
         return left
       elsif right.is_a? Constant and right.value == -1 then
-        return Sub.new(Constant.new(0), left).reduce
+        return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
         left_value = left.value
         gcd = left.value.gcd(right.value)
@@ -288,12 +323,16 @@ module Gloss
           return Div.new(Constant.new(left.value / gcd),
                          Constant.new(right.value / gcd)).reduce
         end
+      elsif left.is_a? Negation then
+        return Negation.new(Div.new(left.expression, right)).reduce
+      elsif right.is_a? Negation then
+        return Negation.new(Div.new(left, right.expression)).reduce
       elsif left.is_a? Div then
         return Div.new(left.left, Mul.new(left.right, right)).reduce
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.right), right.left).reduce
       elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
-        return Sub.new(Constant.new(0), Div.new(left, right.right))
+        return Negation.new(Div.new(left, right.right))
       end
       self
     end

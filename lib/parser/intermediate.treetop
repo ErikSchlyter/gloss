@@ -92,7 +92,7 @@ grammar Intermediate
     '-' expression
     {
       def create
-        Sub.new(Constant.new(0), expression.create)
+        Negation.new(expression.create)
       end
     }
   end
