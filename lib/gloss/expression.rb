@@ -97,6 +97,10 @@ module Gloss
       @parameters.sort! if commutative?
       self
     end
+
+    def value
+      nil
+    end
   end
 
   class Constant < Expression
@@ -232,7 +236,7 @@ module Gloss
 
     def reduce
       super
-      if right.is_a? Constant and right.value == 0 then
+      if right.value == 0 then
         return left
       elsif right.is_a? Constant and right.value < 0 then
         return Sub.new(left, Constant.new(0 - right.value)).reduce
@@ -284,19 +288,17 @@ module Gloss
 
     def reduce
       super
-      if right.is_a? Constant and right.value == 0 then
+      if right.value == 0 then
         return right
-      elsif right.is_a? Constant and right.value == 1 then
+      elsif right.value == 1 then
         return left
-      elsif right.is_a? Constant and right.value == -1 then
+      elsif right.value == -1 then
         return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
         return Constant.new(left.value * right.value)
       elsif left.is_a? Negation then
         return Negation.new(Mul.new(left.expression, right)).reduce
-      elsif right.is_a? Negation then
-        return Negation.new(Mul.new(left, right.expression)).reduce
-      elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
+      elsif right.is_a? Sub and right.left.value == 0 then
         return Negation.new(Mul.new(left, right.right))
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.left), right.right).reduce
@@ -312,9 +314,9 @@ module Gloss
 
     def reduce
       super
-      if right.is_a? Constant and right.value == 1 then
+      if right.value == 1 then
         return left
-      elsif right.is_a? Constant and right.value == -1 then
+      elsif right.value == -1 then
         return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
         left_value = left.value
@@ -331,7 +333,7 @@ module Gloss
         return Div.new(left.left, Mul.new(left.right, right)).reduce
       elsif right.is_a? Div then
         return Div.new(Mul.new(left, right.right), right.left).reduce
-      elsif right.is_a? Sub and right.left.is_a? Constant and right.left.value == 0 then
+      elsif right.is_a? Sub and right.left.value == 0 then
         return Negation.new(Div.new(left, right.right))
       end
       self
