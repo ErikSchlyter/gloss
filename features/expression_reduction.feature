@@ -61,6 +61,7 @@ Examples:
       | '(x*1)'        | 'x'             | 'reducing' |
       | '(1*x)'        | 'x'             | 'reducing' |
       | '(x*-1)'       | '-x'            | 'reducing' |
+      | '(x*-5)'       | '-(x*5)'        | 'bubble negation' |
       | '(x*(0-y))'    | '-(x*y)'        | 'bubble negation' |
       | '(0-(x*(0-y)))'| '(x*y)'         | 'bubble negation' |
 
@@ -68,6 +69,7 @@ Examples:
       | '(2/6)'        | '(1/3)'         | 'reducing' |
       | '(3/1)'        | '3'             | 'reducing' |
       | '(x/-1)'       | '-x'            | 'reducing' |
+      | '(x/-5)'       | '-(x/5)'        | 'bubble negation' |
       | '(x/(0-y))'    | '-(x/y)'        | 'bubble negation' |
       | '(0-(x/(0-y)))'| '(x/y)'         | 'bubble negation' |
 

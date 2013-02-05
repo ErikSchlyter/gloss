@@ -274,6 +274,8 @@ module Gloss
         return Negation.new(right).reduce
       elsif right.is_a? Constant and right.value < 0 then
         return Add.new(left, Expression(-right.value)).reduce
+      elsif right.is_a? Negation then
+        return Add.new(left, right.expression).reduce
       elsif both_parameters_are_constants? then
         return Expression(left.value - right.value)
       elsif left.is_a? Add and left.right.is_a? Constant and right.is_a? Constant then
@@ -302,8 +304,8 @@ module Gloss
         return right
       elsif right.value == 1 then
         return left
-      elsif right.value == -1 then
-        return Negation.new(left).reduce
+      elsif right.is_a? Constant and right.value < 0
+        return Negation.new(Mul.new(left, Expression(-right.value))).reduce
       elsif both_parameters_are_constants? then
         return Expression(left.value * right.value)
       elsif left.is_a? Negation then
@@ -326,8 +328,6 @@ module Gloss
       super
       if right.value == 1 then
         return left
-      elsif right.value == -1 then
-        return Negation.new(left).reduce
       elsif both_parameters_are_constants? then
         left_value = left.value
         gcd = left.value.gcd(right.value)
@@ -337,8 +337,12 @@ module Gloss
         end
       elsif left.is_a? Negation then
         return Negation.new(Div.new(left.expression, right)).reduce
+      elsif left.is_a? Constant and left.value < 0 then
+        return Negation.new(Div.new(Expression(-left.value), right)).reduce
       elsif right.is_a? Negation then
         return Negation.new(Div.new(left, right.expression)).reduce
+      elsif right.is_a? Constant and right.value < 0 then
+        return Negation.new(Div.new(left, Expression(-right.value))).reduce
       elsif left.is_a? Div then
         return Div.new(left.left, Mul.new(left.right, right)).reduce
       elsif right.is_a? Div then
