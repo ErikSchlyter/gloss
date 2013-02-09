@@ -1,3 +1,4 @@
+@codegeneration
 Feature: Memoization
   In order to avoid the same expressions to be executed multiple times
   As a generated method
