@@ -330,7 +330,6 @@ module Gloss
       if right.value == 1 then
         return left
       elsif both_parameters_are_constants? then
-        left_value = left.value
         gcd = left.value.gcd(right.value)
         if gcd > 1
           return Div.new(Expression(left.value / gcd),
