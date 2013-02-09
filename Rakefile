@@ -21,3 +21,7 @@ end
 task :features => [:code_generation] do
 	sh "cucumber -f pretty -s"
 end
+
+task :html => [:code_generation] do
+	sh "cucumber -f html > index.html"
+end
