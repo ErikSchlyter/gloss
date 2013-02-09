@@ -1,88 +1,115 @@
-Feature: Normalization
-  In order to compare and reduce expressions correctly
-  As an optimization function
-  I want to each expression to be expressed as short as possible
+@expression
+Feature: Expression reduction
+  In order to minimize expressions and avoid loss of precision due to integer division
+  As a developer
+  I want the generated expressions to use as few operations as possible
 
-  Scenario: Comparing different expression types
-    Given the following list of expressions: add, constant, div, load, max, min, mul, sub
-    When sorting them according to parameter order
-    Then the order should be: max, min, load, mul, div, add, sub, constant
-
-  Scenario Outline: Reducing expressions
+  Scenario Outline: Reducing ambigious expressions
     Given the <expression> to reduce
-    When invoking reduce
-    Then it should return an equal expression that is <reduced>
-Examples:
-      | expression     | reduced         | comment |
-      | '(1+2)'        | '3'             | 'reducing +' |
-      | '((1+2)+3)'    | '6'             | 'reducing +' |
-      | '(2-1)'        | '1'             | 'reducing -' |
-      | '((3-2)-1)'    | '0'             | 'reducing -' |
-      | '(3-5)'        | '-2'            | 'reducing -' |
+    When converting it to reduced form
+    Then it should match the mathematically equal but minimized expression <reduced>
 
-      | '(2*1)'        | '2'             | 'reducing *' |
-      | '((4*3)*2)'    | '24'            | 'reducing *' |
+    Examples:
+      | expression     | reduced         |
+      | '(x+0)'        | 'x'             |
+      | '(0+x)'        | 'x'             |
+      | '(x-0)'        | 'x'             |
+      | '(0-x)'        | '-x'            |
+      | '(x*0)'        | '0'             |
+      | '(0*x)'        | '0'             |
+      | '(x*1)'        | 'x'             |
+      | '(1*x)'        | 'x'             |
+      | '(-1*x)'       | '-x'            |
+      | '(x*-1)'       | '-x'            |
+      | '(x/-1)'       | '-x'            |
+      | '-x'           | '-x'            |
+      | '---x'         | '-x'            |
+      | '----x'        | 'x'             |
 
-      | '<(3)'         | '3'             | 'reducing min' |
-      | '<(3,4,5)'     | '3'             | 'reducing min' |
-      | '<(<(3,4),1)'  | '1'             | 'reducing min' |
+  Scenario Outline: Evaluating constant expressions
+    Given the <expression> to reduce
+    When converting it to reduced form
+    Then it should match the mathematically equal but minimized expression <reduced>
 
-      | '>(3)'         | '3'             | 'reducing max' |
-      | '>(3,4)'       | '4'             | 'reducing max' |
-      | '>(>(3,4),1)'  | '4'             | 'reducing max' |
+    Examples:
+      | expression     | reduced         |
+      | '(1+2)'        | '3'             |
+      | '((1+2)+3)'    | '6'             |
+      | '(2-1)'        | '1'             |
+      | '((3-2)-1)'    | '0'             |
+      | '(3-5)'        | '-2'            |
 
-      | '-3'           | '-3'            | 'reducing negation' |
-      | '-(3-5)'       | '2'             | 'reducing negation' |
-      | '-a'           | '-a'            | 'reducing negation' |
-      | '---a'         | '-a'            | 'reducing negation' |
-      | '----a'        | 'a'             | 'reducing negation' |
+      | '(2*1)'        | '2'             |
+      | '((4*3)*2)'    | '24'            |
 
-      | '(1+x)'        | '(x+1)'         | 'sorting' |
-      | '(x+1)'        | '(x+1)'         | 'sorting' |
-      | '(1+(a+b))'    | '((a+b)+1)'     | 'sorting' |
+      | '<(3)'         | '3'             |
+      | '<(3,4,5)'     | '3'             |
+      | '<(<(3,4),1)'  | '1'             |
 
-      | '(2*x)'        | '(x*2)'         | 'sorting' |
-      | '(x*2)'        | '(x*2)'         | 'sorting' |
-      | '(a*b)'        | '(a*b)'         | 'sorting' |
-      | '(b*a)'        | '(a*b)'         | 'sorting' |
-      | '(2*(b*a))'    | '((a*b)*2)'     | 'sorting' |
+      | '>(3)'         | '3'             |
+      | '>(3,4)'       | '4'             |
+      | '>(>(3,4),1)'  | '4'             |
 
-      | '<(b,a)'       | '<(a,b)'        | 'sorting' |
-      | '<(<(c,3,b),a)'| '<(a,b,c,3)'    | 'sorting' |
+      | '-3'           | '-3'            |
+      | '-(3-5)'       | '2'             |
 
-      | '(x+0)'        | 'x'             | 'reducing' |
-      | '(0+x)'        | 'x'             | 'reducing' |
+      | '(1/3)'        | '(1/3)'         |
+      | '(2/6)'        | '(1/3)'         |
+      | '(3/1)'        | '3'             |
+      | '(9/(3/7))'    | '21'            |
 
-      | '(x-0)'        | 'x'             | 'reducing' |
-      | '(0-x)'        | '-x'            | 'reducing' |
+      | '(((1+2)+x)+3)'| '(x+6)'         |
+      | '(1+(2+(x+3)))'| '(x+6)'         |
+      | '((x-3)-1)'    | '(x-4)'         |
+      | '((x-1)+3)'    | '(x+2)'         |
+      | '((x+3)-1)'    | '(x+2)'         |
+      | '((x+1)-3)'    | '(x-2)'         |
 
-      | '(x*0)'        | '0'             | 'reducing' |
-      | '(0*x)'        | '0'             | 'reducing' |
-      | '(x*1)'        | 'x'             | 'reducing' |
-      | '(1*x)'        | 'x'             | 'reducing' |
-      | '(x*-1)'       | '-x'            | 'reducing' |
-      | '(x*-5)'       | '-(x*5)'        | 'bubble negation' |
-      | '(x*(0-y))'    | '-(x*y)'        | 'bubble negation' |
-      | '(0-(x*(0-y)))'| '(x*y)'         | 'bubble negation' |
+  Scenario Outline: Sorting parameters for commutative expressions
+    Given the <expression> to reduce
+    When converting it to reduced form
+    Then it should match the mathematically equal but minimized expression <reduced>
 
-      | '(1/3)'        | '(1/3)'         | 'reducing' |
-      | '(2/6)'        | '(1/3)'         | 'reducing' |
-      | '(3/1)'        | '3'             | 'reducing' |
-      | '(x/-1)'       | '-x'            | 'reducing' |
-      | '(x/-5)'       | '-(x/5)'        | 'bubble negation' |
-      | '(x/(0-y))'    | '-(x/y)'        | 'bubble negation' |
-      | '(0-(x/(0-y)))'| '(x/y)'         | 'bubble negation' |
+    Examples:
+      | expression         | reduced         |
+      | '(1+x)'            | '(x+1)'         |
+      | '(x+1)'            | '(x+1)'         |
+      | '(1+(x+y))'        | '((x+y)+1)'     |
 
-      | '(((1+2)+x)+3)'| '(x+6)'         | 'reducing' |
-      | '(1+(2+(x+3)))'| '(x+6)'         | 'reducing' |
-      | '((x-3)-1)'    | '(x-4)'         | 'reducing' |
-      | '((x-1)+3)'    | '(x+2)'         | 'reducing' |
-      | '((x+3)-1)'    | '(x+2)'         | 'reducing' |
-      | '((x+1)-3)'    | '(x-2)'         | 'reducing' |
+      | '(2*x)'            | '(x*2)'         |
+      | '(x*2)'            | '(x*2)'         |
 
-      | '(a*(b/c))'    | '((a*b)/c)'     | 'avoid loss in precision' |
-      | '((a/b)/c)'    | '(a/(b*c))'     | 'avoid loss in precision' |
-      | '(a/(b/c))'    | '((a*c)/b)'     | 'avoid loss in precision' |
-      | '(9/(3/7))'    | '21'            | 'avoid loss in precision' |
-      | '((a/b)*(c/d))'| '((a*c)/(b*d))' | 'avoid loss in precision' |
+      | '(x*y)'            | '(x*y)'         |
+      | '(y*x)'            | '(x*y)'         |
+
+      | '(2*(y*x))'        | '((x*y)*2)'     |
+
+      | '<(y,x)'           | '<(x,y)'        |
+      | '<(<(z,3,y),x)'    | '<(x,y,z,3)'    |
+
+  Scenario Outline: Pulling negations upwards
+    Given the <expression> to reduce
+    When converting it to reduced form
+    Then it should match the mathematically equal but minimized expression <reduced>
+
+    Examples:
+      | expression     | reduced         |
+      | '(x*-5)'       | '-(x*5)'        |
+      | '(x*(0-y))'    | '-(x*y)'        |
+      | '(0-(x*(0-y)))'| '(x*y)'         |
+      | '(x/-5)'       | '-(x/5)'        |
+      | '(x/(0-y))'    | '-(x/y)'        |
+      | '(0-(x/(0-y)))'| '(x/y)'         |
+
+  Scenario Outline: Avoiding loss in precision
+    Given the <expression> to reduce
+    When converting it to reduced form
+    Then it should match the mathematically equal but minimized expression <reduced>
+
+    Examples:
+      | expression     | reduced         |
+      | '(a*(b/c))'    | '((a*b)/c)'     |
+      | '((a/b)/c)'    | '(a/(b*c))'     |
+      | '(a/(b/c))'    | '((a*c)/b)'     |
+      | '((a/b)*(c/d))'| '((a*c)/(b*d))' |
 

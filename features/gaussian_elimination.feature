@@ -1,3 +1,4 @@
+@expression
 Feature: Gaussian elimination
   In order to reduce equations
   As an optimization function
