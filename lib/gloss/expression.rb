@@ -194,6 +194,7 @@ module Gloss
         @parameters.delete(expression)
         @parameters.concat(expression.parameters)
       }
+      @parameters.sort!
     end
   end
 

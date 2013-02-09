@@ -86,6 +86,7 @@ Feature: Expression reduction
 
       | '<(y,x)'           | '<(x,y)'        |
       | '<(<(z,3,y),x)'    | '<(x,y,z,3)'    |
+      | '<(<(z,<(3,y)),x)' | '<(x,y,z,3)'    |
 
   Scenario Outline: Pulling negations upwards
     Given the <expression> to reduce
